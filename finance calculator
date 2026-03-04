@@ -14,6 +14,7 @@
 </head>
 <body class="bg-slate-50 text-slate-900">
 
+    <!-- 顶部标题 -->
     <header class="bg-white border-b sticky top-0 z-50">
         <div class="max-w-5xl mx-auto px-6 py-6 flex items-center justify-center gap-4">
             <div class="w-10 h-10 bg-sky-500 rounded-3xl flex items-center justify-center text-white text-3xl font-bold">算</div>
@@ -21,22 +22,28 @@
         </div>
     </header>
 
+    <!-- 主内容 -->
     <section class="max-w-5xl mx-auto px-6 py-16">
         <div class="bg-white rounded-3xl shadow-2xl p-12">
             <div class="text-center mb-12">
                 <h1 class="text-5xl font-bold">自定义投资组合</h1>
-                <p class="text-slate-500 mt-4 text-xl">输入Yahoo符号（如 0700.HK、NVDA、600519.SS）→ 点击“获取真实数据”<br>已支持自动提示 + 最稳定代理</p>
+                <p class="text-slate-500 mt-4 text-xl">输入Yahoo符号（如 0700.HK、NVDA、600519.SS）→ 点击“获取真实数据”<br>支持自动提示 + 最稳定代理</p>
             </div>
 
             <div id="asset-list" class="space-y-8"></div>
 
             <div class="mt-12 flex justify-center gap-6">
-                <button onclick="addAssetRow()" class="px-8 py-4 border border-sky-300 hover:bg-sky-50 text-sky-600 rounded-3xl flex items-center gap-3"><i class="fa-solid fa-plus"></i> 添加第7个资产</button>
-                <button onclick="calculatePortfolio()" class="px-12 py-4 bg-sky-600 hover:bg-sky-700 text-white text-xl font-medium rounded-3xl">计算组合回报与风险</button>
+                <button onclick="addAssetRow()" class="px-8 py-4 border border-sky-300 hover:bg-sky-50 text-sky-600 rounded-3xl flex items-center gap-3">
+                    <i class="fa-solid fa-plus"></i> 添加第7个资产
+                </button>
+                <button onclick="calculatePortfolio()" class="px-12 py-4 bg-sky-600 hover:bg-sky-700 text-white text-xl font-medium rounded-3xl">
+                    计算组合回报与风险
+                </button>
             </div>
 
             <div class="mt-8 text-center text-3xl font-semibold text-sky-600" id="totalAlloc">100%</div>
 
+            <!-- 结果区 -->
             <div id="portfolioResult" class="hidden mt-12 bg-sky-50 rounded-3xl p-10">
                 <div class="grid grid-cols-2 gap-10 text-center">
                     <div><div class="text-sm text-slate-500">预期年化回报</div><div id="portReturn" class="text-6xl font-bold text-sky-700">—</div></div>
@@ -48,6 +55,7 @@
         </div>
     </section>
 
+    <!-- 自动提示列表 -->
     <datalist id="stockList">
         <option value="0700.HK">腾讯控股</option>
         <option value="600519.SS">贵州茅台</option>
@@ -110,7 +118,7 @@
                         <input id="alloc${asset.id}" type="number" value="${asset.alloc}" oninput="updateTotalAlloc()" class="w-full px-5 py-4 bg-white border border-slate-200 focus:border-sky-400 rounded-3xl text-lg">
                     </div>
                     <div class="col-span-12 mt-3">
-                        <button onclick="getRealData(${asset.id});" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-3xl text-sm font-medium flex items-center justify-center gap-2">
+                        <button onclick="getRealData(${asset.id})" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-3xl text-sm font-medium flex items-center justify-center gap-2">
                             <i class="fa-solid fa-satellite-dish"></i> 获取真实历史数据
                         </button>
                     </div>
@@ -121,14 +129,14 @@
 
         async function getRealData(id) {
             const btn = event.currentTarget;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '⏳ 获取中，请稍等...';
+            const original = btn.innerHTML;
+            btn.innerHTML = '⏳ 获取中...';
             btn.disabled = true;
 
             const symbol = document.getElementById(`name${id}`).value.trim().toUpperCase();
             if (!symbol) {
                 alert('请输入Yahoo符号');
-                btn.innerHTML = originalText;
+                btn.innerHTML = original;
                 btn.disabled = false;
                 return;
             }
@@ -142,10 +150,7 @@
 
             try {
                 const res = await fetch(proxyUrl);
-                const text = await res.text();
-                if (text.includes('<!DOCTYPE')) throw new Error('代理限流，请稍等10秒重试');
-
-                const json = JSON.parse(text);
+                const json = await res.json();
                 const closes = json.chart.result[0].indicators.quote[0].close.filter(v => v != null);
 
                 if (closes.length < 6) throw new Error('数据不足');
@@ -159,21 +164,70 @@
 
                 document.getElementById(`ret${id}`).value = cagr.toFixed(1);
                 document.getElementById(`vol${id}`).value = vol.toFixed(1);
-
-                alert(`✅ ${symbol} ${years}年真实数据获取成功！\n年化回报：${cagr.toFixed(1)}%\n波动率：${vol.toFixed(1)}%`);
+                alert(`✅ ${symbol} ${years}年真实数据已填充！`);
             } catch(e) {
-                alert(`获取失败\n\n原因：${e.message}\n\n建议：稍等10秒重试一次（代理限流很正常）`);
+                alert('获取失败（代理偶尔限流），请稍等10秒重试');
             }
-
-            btn.innerHTML = originalText;
+            btn.innerHTML = original;
             btn.disabled = false;
         }
 
-        function updateAsset(id) { /* 省略，实际已完整 */ }
-        function updateTotalAlloc() { /* 省略，实际已完整 */ }
-        function calculatePortfolio() { /* 省略，实际已完整 */ }
-        function addAssetRow() { /* 省略，实际已完整 */ }
+        function updateAsset(id) {
+            const idx = assets.findIndex(a => a.id === id);
+            if (idx > -1) {
+                assets[idx].name = document.getElementById(`name${id}`).value;
+                assets[idx].period = document.getElementById(`period${id}`).value;
+            }
+        }
 
+        function updateTotalAlloc() {
+            let sum = 0;
+            assets.forEach(a => {
+                sum += parseFloat(document.getElementById(`alloc${a.id}`).value) || 0;
+            });
+            document.getElementById('totalAlloc').textContent = Math.round(sum);
+        }
+
+        function calculatePortfolio() {
+            let totalRet = 0, variance = 0, totalAlloc = 0;
+            assets.forEach(a => {
+                const alloc = parseFloat(document.getElementById(`alloc${a.id}`).value) || 0;
+                const ret = parseFloat(document.getElementById(`ret${a.id}`).value) || 0;
+                const vol = parseFloat(document.getElementById(`vol${a.id}`).value) || 0;
+                const w = alloc / 100;
+                totalRet += w * ret;
+                variance += w * w * vol * vol;
+                totalAlloc += alloc;
+            });
+
+            if (Math.abs(totalAlloc - 100) > 5) return alert('分配比例请接近100%');
+
+            const portVol = Math.sqrt(variance);
+            const riskLevel = portVol < 12 ? '低风险' : portVol < 22 ? '中等风险' : '高风险';
+
+            document.getElementById('portReturn').textContent = totalRet.toFixed(2) + '%';
+            document.getElementById('portVol').textContent = portVol.toFixed(2) + '%';
+            document.getElementById('riskLevel').textContent = riskLevel;
+            document.getElementById('portfolioResult').classList.remove('hidden');
+
+            const labels = assets.map(a => document.getElementById(`name${a.id}`).value);
+            const data = assets.map(a => parseFloat(document.getElementById(`alloc${a.id}`).value) || 0);
+            if (pieChart) pieChart.destroy();
+            pieChart = new Chart(document.getElementById('allocPie'), {
+                type: 'doughnut',
+                data: { labels, datasets: [{ data, backgroundColor: ['#bae6fd','#7dd3fc','#38bdf8','#0ea5e9','#bae6fd','#7dd3fc'] }] },
+                options: { plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        function addAssetRow() {
+            const newId = Math.max(...assets.map(a => a.id)) + 1;
+            assets.push({id: newId, name:"AAPL", period:"5年", ret:26, vol:21, alloc:10});
+            renderAssets();
+            updateTotalAlloc();
+        }
+
+        // 初始化
         document.addEventListener('DOMContentLoaded', () => {
             renderAssets();
             updateTotalAlloc();
